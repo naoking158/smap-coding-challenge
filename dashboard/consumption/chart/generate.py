@@ -10,6 +10,8 @@ from consumption.chart.statistics import (
     get_area_daily_total_consumptions,
     get_daily_percentiles_for_all,
     get_daily_total_consumptions_for_all,
+    get_user_area_daily_consumption_median,
+    get_user_daily_total_consumptions,
 )
 
 
@@ -94,6 +96,28 @@ def plot_area_consumption(area_totals: pd.DataFrame, area_percentiles: pd.DataFr
     return fig
 
 
+def plot_user_and_area_consumption(
+    user_df: pd.DataFrame, area_df: pd.DataFrame, user_id: int
+) -> Figure:
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(
+        user_df['date'], user_df['daily_total'], label=f'User {user_id} Consumption', color='blue'
+    )
+    ax.plot(
+        area_df['date'],
+        area_df['p50'],
+        label='Area Median Consumption',
+        color='red',
+        linestyle='--',
+    )
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Total Consumption')
+    ax.grid(True)
+    ax.legend(loc='upper left')
+
+    return fig
+
+
 def generate_daily_total_consumption_graph() -> str:
     """日ごとの消費量の総量と、中央値と 10-90%-ile をプロットしたグラフを生成"""
     df = get_daily_total_consumptions_for_all()
@@ -106,6 +130,7 @@ def generate_daily_total_consumption_graph() -> str:
         image_png = buffer.getvalue()
 
     graph = base64.b64encode(image_png).decode('utf-8')
+    return graph
 
 
 def generate_daily_total_consumption_graph_by_area() -> str:
@@ -122,4 +147,17 @@ def generate_daily_total_consumption_graph_by_area() -> str:
     graph = base64.b64encode(image_png).decode('utf-8')
     return graph
 
+
+def generate_user_consumption_graph(user_id: int) -> str:
+    """ユーザーごとの日ごとの消費量の総量と、エリアの中央値をプロットしたグラフを生成"""
+    user_df = get_user_daily_total_consumptions(user_id)
+    area_df = get_user_area_daily_consumption_median(user_id)
+
+    with io.BytesIO() as buffer:
+        fig = plot_user_and_area_consumption(user_df, area_df, user_id)
+        fig.savefig(buffer, format='png')
+        buffer.seek(0)
+        image_png1 = buffer.getvalue()
+
+    graph = base64.b64encode(image_png1).decode('utf-8')
     return graph
