@@ -1,7 +1,8 @@
 {% extends 'consumption/layout.html' %}
 
 {% block content %}
-
-<h1>{{message}}</h1>
-
+<h2 class="title">Total Consumption Chart</h2>
+<img src="data:image/png;base64,{{ graph }}" alt="Total Consumption Chart">
+<h2 class="title">Area Consumption Chart</h2>
+<img src="data:image/png;base64,{{ graph_by_area }}" alt="Area Consumption Chart">
 {% endblock %}
