@@ -6,6 +6,8 @@ import pandas as pd
 from matplotlib.figure import Figure
 
 from consumption.chart.statistics import (
+    get_area_daily_percentiles,
+    get_area_daily_total_consumptions,
     get_daily_percentiles_for_all,
     get_daily_total_consumptions_for_all,
 )
@@ -45,6 +47,53 @@ def plot_total_consumption(df: pd.DataFrame, percentiles: pd.DataFrame) -> Figur
     return fig
 
 
+def plot_area_consumption(area_totals: pd.DataFrame, area_percentiles: pd.DataFrame) -> Figure:
+    fig, ax = plt.subplots(figsize=(10, 5))
+
+    colors = ['red', 'cyan', 'green', 'blue']
+    color_index = 0
+    ax2 = ax.twinx()
+    for area in area_totals['area'].unique():
+        area_data_totals = area_totals[area_totals['area'] == area]
+        area_data_percentiles = area_percentiles[area_percentiles['area'] == area]
+
+        ax.plot(
+            area_data_totals['date'],
+            area_data_totals['daily_total'],
+            label=f'{area} Total Consumption',
+            color=colors[color_index],
+        )
+        ax2.fill_between(
+            area_data_percentiles['date'],
+            area_data_percentiles['p10'],
+            area_data_percentiles['p90'],
+            alpha=0.1,
+            label=f'{area} 10-90 Percentile',
+            color=colors[color_index],
+        )
+        ax2.plot(
+            area_data_percentiles['date'],
+            area_data_percentiles['p50'],
+            linestyle='--',
+            label=f'{area} Median',
+            color=colors[color_index],
+        )
+
+        color_index = (color_index + 1) % len(colors)
+
+    ax.set_title('Daily Consumption with 10-90 Percentile and Median by Area')
+    ax.set_xlabel('Date')
+    ax.set_ylabel('Total Consumption')
+    ax.grid(True)
+
+    ax2.set_ylabel('Percentiles and Median')
+    lines, labels = ax.get_legend_handles_labels()
+    lines2, labels2 = ax2.get_legend_handles_labels()
+    ax.legend(lines + lines2, labels + labels2, loc='upper left', bbox_to_anchor=(0.1, 0.9))
+
+    return fig
+
+
 def generate_daily_total_consumption_graph() -> str:
     """日ごとの消費量の総量と、中央値と 10-90%-ile をプロットしたグラフを生成"""
     df = get_daily_total_consumptions_for_all()
@@ -57,5 +106,20 @@ def generate_daily_total_consumption_graph() -> str:
         image_png = buffer.getvalue()
 
     graph = base64.b64encode(image_png).decode('utf-8')
+
+
+def generate_daily_total_consumption_graph_by_area() -> str:
+    """エリア別に、日ごとの消費量の総量と、中央値と 10-90%-ile をプロットしたグラフを生成"""
+    df = get_area_daily_total_consumptions()
+    percentiles = get_area_daily_percentiles()
+
+    with io.BytesIO() as buffer:
+        fig = plot_area_consumption(df, percentiles)
+        fig.savefig(buffer, format='png')
+        buffer.seek(0)
+        image_png = buffer.getvalue()
+
+    graph = base64.b64encode(image_png).decode('utf-8')
+    return graph
 
     return graph
