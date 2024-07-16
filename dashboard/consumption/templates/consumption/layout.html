@@ -1,8 +1,62 @@
 <!DOCTYPE html>
 <html>
+  
   <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Document</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bulma@1.0.1/css/bulma.min.css">
+
+    <style>
+    .scrollable {
+      overflow-y: scroll;
+      height: 90vh;
+    }
+    .sticky-header {
+      position: sticky;
+      top: 0;
+    }
+    </style>
   </head>
-  <body>
-    {% block content %}{% endblock content %}
+  
+  <body class="has-navbar-fixed-top">
+    <nav class="navbar is-fixed-top is-info">
+      <div class="navbar-brand">
+        <a href="/" class="navbar-item">
+          <strong>Summary</strong>
+        </a>
+        <div class="navbar-item">
+          {% block subtitle %}{% endblock subtitle %}
+        </div>
+      </div>
+    </nav>
+
+    <section class="section">
+      <div class="container">
+        <div class="columns">
+          
+          <!-- 左端にユーザーIDを列挙 -->
+          <div class="column is-one-fifth scrollable">
+            <div class="sticky-header">
+              <h2 class="title">User IDs</h2>
+            </div>
+            <ul>
+              {% for u_id in user_ids %}
+              <li>
+                <a href="{% url 'detail' u_id %}">{{ u_id }}</a>
+              </li>
+              {% endfor %}
+            </ul>
+          </div>
+          
+          <!-- 右側に統計情報を表示 -->
+          <div class="column">
+            {% block content %}{% endblock content %}
+          </div>
+
+        </div>
+      </div>
+    </section>
   </body>
+  
 </html>
