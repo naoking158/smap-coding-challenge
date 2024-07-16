@@ -1,0 +1,25 @@
+line-length = 99
+indent-width = 4
+
+# Assume Python 3.9
+target-version = "py39"
+
+[lint]
+select = ["E4", "E7", "E9", "F", "B", "E", "W", "I", "PL", "DJ"]
+
+# Avoid enforcing line-length violations (`E501`)
+ignore = ["E501", "B904", "PLW1508"]
+
+# Avoid trying to fix flake8-bugbear (`B`) violations and unused-import (E401).
+unfixable = ["B", "E401"]
+
+# Ignore `E402` (import violations) in all `__init__.py` files, and in select subdirectories.
+[lint.per-file-ignores]
+"__init__.py" = ["E402"]
+"**/{tests,docs,tools}/*" = ["E402"]
+
+[format]
+# Use single quotes for non-triple-quoted strings.
+quote-style = "single"
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
