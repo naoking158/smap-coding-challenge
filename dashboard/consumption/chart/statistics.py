@@ -1,0 +1,67 @@
+import pandas as pd
+from django.db import connection
+from django.db.models import Sum
+from django.db.models.functions import TruncDate
+
+from consumption.models import Consumption
+
+
+def get_daily_total_consumptions_for_all() -> pd.DataFrame:
+    """全ユーザーの日ごとの消費量の合計を集計
+
+    Returns
+    -------
+    pandas.DataFrame
+        columns=['date', 'daily_total']
+            date: 日付,
+            daily_total: 全ユーザーの日ごとの消費量の合計
+    """
+    daily_total_consumption = (
+        Consumption.objects.annotate(date=TruncDate('datetime'))
+        .values('date')
+        .annotate(daily_total=Sum('consumption'))
+        .order_by('date')
+    )
+    return pd.DataFrame(daily_total_consumption)
+
+
+def get_daily_percentiles_for_all() -> pd.DataFrame:
+    """日ごとの消費量の 10-90%-ile と中央値を集計
+
+    Returns
+    -------
+    pandas.DataFrame
+        columns=['date', 'p10', 'p50', 'p90']
+            date: 日付,
+            p10: 全ユーザーの日ごとの消費量の 10%-ile,
+            p50: 全ユーザーの日ごとの消費量の 50%-ile (median),
+            p90: 全ユーザーの日ごとの消費量の 90%-ile
+    """
+    # モデルからテーブル名を取得
+    consumption_table = Consumption._meta.db_table
+
+    # NOTE:
+    query = f"""
+    WITH daily_totals AS (
+        SELECT
+            user_id,
+            DATE_TRUNC('day', datetime) AS date,
+            SUM(consumption) AS daily_total
+        FROM {consumption_table}
+        GROUP BY user_id, date
+    )
+    SELECT
+        date,
+        PERCENTILE_CONT(0.1) WITHIN GROUP (ORDER BY daily_total) AS p10,
+        PERCENTILE_CONT(0.5) WITHIN GROUP (ORDER BY daily_total) AS p50,
+        PERCENTILE_CONT(0.9) WITHIN GROUP (ORDER BY daily_total) AS p90
+    FROM daily_totals
+    GROUP BY date
+    ORDER BY date;
+    """
+
+    with connection.cursor() as cursor:
+        cursor.execute(query)
+        rows = cursor.fetchall()
+
+    return pd.DataFrame(rows, columns=['date', 'p10', 'p50', 'p90'])
