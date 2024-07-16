@@ -31,7 +31,7 @@ def make_user_list_to_create_and_update(
     return users_to_create, users_to_update
 
 
-def import_user_data(csv_file_path, batch_size=10000):
+def import_user_data(csv_file_path, batch_size=1000):
     """ユーザー情報を CSV から User テーブルへインポート"""
     df = pd.read_csv(csv_file_path)
 
@@ -41,18 +41,21 @@ def import_user_data(csv_file_path, batch_size=10000):
 
     existing_users = User.objects.in_bulk(df['id'].tolist())
     users_to_create, users_to_update = make_user_list_to_create_and_update(df, existing_users)
-    with transaction.atomic():
-        for i in range(0, len(users_to_create) - batch_size, batch_size):
-            if len(users_to_create) - i >= batch_size:
-                User.objects.bulk_create(users_to_create[i : i + batch_size])
-            else:
-                User.objects.bulk_create(users_to_create[i:])
 
-        for i in range(0, len(users_to_create) - batch_size, batch_size):
-            if len(users_to_update) - i >= batch_size:
-                User.objects.bulk_update(users_to_update[i : i + batch_size], ['area', 'tariff'])
-            else:
-                User.objects.bulk_update(users_to_update[i:], ['area', 'tariff'])
+    with transaction.atomic():
+        for i in range(len(users_to_create) // batch_size + 1):
+            # IndexError が発生しないように処理をスキップ
+            if i * batch_size == len(users_to_create):
+                continue
+            User.objects.bulk_create(users_to_create[i * batch_size : (i + 1) * batch_size])
+
+        for i in range(len(users_to_update) // batch_size + 1):
+            # IndexError が発生しないように処理をスキップ
+            if i * batch_size == len(users_to_update):
+                continue
+            User.objects.bulk_update(
+                users_to_update[i * batch_size : (i + 1) * batch_size], ['area', 'tariff']
+            )
 
 
 def load_consumption_data(consumption_dir: Path) -> pd.DataFrame:
@@ -158,19 +161,21 @@ def import_all_consumption_data(consumption_dir: Path, batch_size=1000):
     )
 
     with transaction.atomic():
-        for i in range(0, len(consumption_data_to_create), batch_size):
-            if len(consumption_data_to_create) - i >= batch_size:
-                Consumption.objects.bulk_create(consumption_data_to_create[i : i + batch_size])
-            else:
-                Consumption.objects.bulk_create(consumption_data_to_create[i:])
+        for i in range(len(consumption_data_to_create) // batch_size + 1):
+            # IndexError が発生しないように処理をスキップ
+            if i * batch_size == len(consumption_data_to_create):
+                continue
+            Consumption.objects.bulk_create(
+                consumption_data_to_create[i * batch_size : (i + 1) * batch_size]
+            )
 
-        for i in range(0, len(consumption_data_to_update), batch_size):
-            if len(consumption_data_to_update) - i >= batch_size:
-                Consumption.objects.bulk_update(
-                    consumption_data_to_update[i : i + batch_size], ['consumption']
-                )
-            else:
-                Consumption.objects.bulk_update(consumption_data_to_update[i:], ['consumption'])
+        for i in range(len(consumption_data_to_update) // batch_size + 1):
+            # IndexError が発生しないように処理をスキップ
+            if i * batch_size == len(consumption_data_to_update):
+                continue
+            Consumption.objects.bulk_update(
+                consumption_data_to_update[i * batch_size : (i + 1) * batch_size], ['consumption']
+            )
 
 
 class Command(BaseCommand):
