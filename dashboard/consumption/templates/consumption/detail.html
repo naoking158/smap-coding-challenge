@@ -1,5 +1,13 @@
 {% extends 'consumption/layout.html' %}
 
-{% block content %}
+{% block subtitle %}
+Details for {{ user_info }}
+{% endblock %}
 
+{% block content %}
+<h2 class="title">User {{ user_id }} Total Consumption Chart</h2>
+<p>
+  {{ user_info }}
+</p>
+<img src="data:image/png;base64,{{ graph }}" alt="Total Consumption Chart">
 {% endblock %}

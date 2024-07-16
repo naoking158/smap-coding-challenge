@@ -6,6 +6,7 @@ from django.shortcuts import render
 from consumption.chart.generate import (
     generate_daily_total_consumption_graph,
     generate_daily_total_consumption_graph_by_area,
+    generate_user_consumption_graph,
 )
 from consumption.models import User
 
@@ -19,7 +20,10 @@ def summary(request):
     return render(request, 'consumption/summary.html', context)
 
 
-def detail(request):
-    context = {
-    }
+def detail(request, user_id: int):
+    user_ids = list(User.objects.values_list('id', flat=True).order_by('id'))
+    user_info = User.objects.get(id=user_id)
+    graph = generate_user_consumption_graph(user_id)
+
+    context = {'graph': graph, 'user_id': user_id, 'user_ids': user_ids, 'user_info': user_info}
     return render(request, 'consumption/detail.html', context)
